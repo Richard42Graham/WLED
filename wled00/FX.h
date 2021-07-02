@@ -232,6 +232,8 @@
 #define FX_MODE_TV_SIMULATOR           116
 #define FX_MODE_DYNAMIC_SMOOTH         117
 #define FX_MODE_Rando                  118
+#define FX_MODE_SG_Dail_Adress         119  // star gate specific dailing.
+#define FX_MODE_SG_Dailed_In           120  // star gate specific in comeing worm hole.
 
 
 class WS2812FX {
@@ -572,6 +574,8 @@ class WS2812FX {
       _mode[FX_MODE_TV_SIMULATOR]            = &WS2812FX::mode_tv_simulator;
       _mode[FX_MODE_DYNAMIC_SMOOTH]          = &WS2812FX::mode_dynamic_smooth;
       _mode[FX_MODE_Rando]                   = &WS2812FX::mode_Rando;
+      _mode[FX_MODE_SG_Dail_Adress]          = &WS2812FX::mode_SG_Gail_Adress;
+      _mode[FX_MODE_SG_Dailed_In]            = &WS2812FX::mode_SG_Dailed_In;
 
       _brightness = DEFAULT_BRIGHTNESS;
       currentPalette = CRGBPalette16(CRGB::Black);
@@ -654,6 +658,7 @@ class WS2812FX {
       triwave16(uint16_t),
       getFps(),
       mode_Rando(void);
+      mode_SG_Dail_adress(void);
 
     uint32_t
       now,
@@ -797,6 +802,9 @@ class WS2812FX {
       mode_blends(void),
       mode_tv_simulator(void),
       mode_dynamic_smooth(void);
+      mode_SG_Dail_Adress(void);        // needed ? 
+      mode_SG_Dail_adress(void);        // needed ? 
+      
 
   private:
     uint32_t crgb_to_col(CRGB fastled);
