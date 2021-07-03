@@ -64,6 +64,7 @@ int Symbols[] = {0, 1, 5, 6, 7, 8, 12, 13, 14, 15, 19, 20,
 
     dialOutAdressState->addressCount = 9;
     dialOutAdressState->currentChveron = 9;
+
   }
 
   if (dialOutAdressState->currentChveronLocked)
@@ -88,17 +89,17 @@ int Symbols[] = {0, 1, 5, 6, 7, 8, 12, 13, 14, 15, 19, 20,
 
       for (int index = 0; index < 36; index++)
       {
-        setPixelColor(Symbols[index], CRGB(0, 0, 0));
+        setPixelColor(Symbols[index], 0, 0, 0);
       }
 
       for (int index = 0; index < 18; index++)
       {
-        setPixelColor(ChveronsSides[index], CRGB(0, 0, 0));
+        setPixelColor(ChveronsSides[index], 0, 0, 0);
       }
 
       for (int index = 0; index < 9; index++)
       {
-        setPixelColor(ChveronsLocks[index], CRGB(0, 0, 0));
+        setPixelColor(ChveronsLocks[index], 0, 0, 0);
       }
     }
     else
@@ -126,7 +127,7 @@ int Symbols[] = {0, 1, 5, 6, 7, 8, 12, 13, 14, 15, 19, 20,
   {
     if (dialOutAdressState->currentSearchSymbol != dialOutAdressState->address[index])
     {
-      setPixelColor(Symbols[dialOutAdressState->address[index]], CRGB(0, 0, 255));
+      setPixelColor(Symbols[dialOutAdressState->address[index]], 0, 0, 255);
     }
   }
    return FRAMETIME;
@@ -143,8 +144,8 @@ void WS2812FX::DialAdress(DialOutAdressAnimationState * dialOutAdressState, int 
 
   // 1. Light sides of chveron sides
   case 1:
-    setPixelColor(ChveronsSides[chveron * 2], CRGB(255, 255, 255));
-    setPixelColor(ChveronsSides[chveron * 2 + 1], CRGB(255, 255, 255));
+    setPixelColor(ChveronsSides[chveron * 2], 255, 255, 255);
+    setPixelColor(ChveronsSides[chveron * 2 + 1], 255, 255, 255);
     if (Time > dialOutAdressState->dialAnimationPartTime + 500)
     {
       dialOutAdressState->currentDialAnimationPart = 2;
@@ -154,7 +155,7 @@ void WS2812FX::DialAdress(DialOutAdressAnimationState * dialOutAdressState, int 
 
   // 2. Light the first symbol
   case 2:
-    setPixelColor(Symbols[start_symbol], CRGB(255, 255, 255));
+    setPixelColor(Symbols[start_symbol], 255, 255, 255);
     if (Time > dialOutAdressState->dialAnimationPartTime + 250)
     {
       dialOutAdressState->currentDialAnimationPart = 3;
@@ -177,7 +178,7 @@ void WS2812FX::DialAdress(DialOutAdressAnimationState * dialOutAdressState, int 
     {
       //Goes to the next symbol
       dialOutAdressState->dialAnimationPartTime = Time;
-      setPixelColor(Symbols[dialOutAdressState->currentSearchSymbol], CRGB(0, 0, 0));
+      setPixelColor(Symbols[dialOutAdressState->currentSearchSymbol], 0, 0, 0);
       if (left)
       {
         dialOutAdressState->currentSearchSymbol = dialOutAdressState->currentSearchSymbol + 1;
@@ -196,7 +197,7 @@ void WS2812FX::DialAdress(DialOutAdressAnimationState * dialOutAdressState, int 
       {
         dialOutAdressState->currentSearchSymbol = 35;
       }
-      setPixelColor(Symbols[dialOutAdressState->currentSearchSymbol], CRGB(255, 255, 255));
+      setPixelColor(Symbols[dialOutAdressState->currentSearchSymbol], 255, 255, 255);
     }
     break;
 
@@ -204,7 +205,7 @@ void WS2812FX::DialAdress(DialOutAdressAnimationState * dialOutAdressState, int 
   case 4:
     if (Time > dialOutAdressState->dialAnimationPartTime + 250)
     {
-      setPixelColor(ChveronsLocks[chveron], CRGB(255, 255, 255));
+      setPixelColor(ChveronsLocks[chveron], 255, 255, 255);
       dialOutAdressState->currentDialAnimationPart = 5;
       dialOutAdressState->dialAnimationPartTime = Time;
     }
@@ -214,8 +215,8 @@ void WS2812FX::DialAdress(DialOutAdressAnimationState * dialOutAdressState, int 
   case 5:
     if (Time > dialOutAdressState->dialAnimationPartTime + 500)
     {
-      setPixelColor(ChveronsSides[chveron * 2], CRGB(0, 0, 0));
-      setPixelColor(ChveronsSides[chveron * 2 + 1], CRGB(0, 0, 0));
+      setPixelColor(ChveronsSides[chveron * 2], 0, 0, 0);
+      setPixelColor(ChveronsSides[chveron * 2 + 1], 0, 0, 0);
       dialOutAdressState->currentDialAnimationPart = 6;
       dialOutAdressState->dialAnimationPartTime = Time;
     }
@@ -223,7 +224,7 @@ void WS2812FX::DialAdress(DialOutAdressAnimationState * dialOutAdressState, int 
 
     // 6. Change the color of the symbol (to show it have been chosen)
   case 6:
-    setPixelColor(Symbols[symbol], CRGB(0, 0, 255));
+    setPixelColor(Symbols[symbol], 0, 0, 255);
     dialOutAdressState->currentDialAnimationPart = 7;
     dialOutAdressState->dialAnimationPartTime = Time;
     break;
