@@ -28,32 +28,53 @@
 #define IBN 5100
 #define PALETTE_SOLID_WRAP (paletteBlend == 1 || paletteBlend == 3)
 
-// struct DialOutAdressAnimationState
-// {
-//   // Overall state
-//   int currentChveron = 0; // 7, 8, 9 . adress
-//   int address[9] = {24, 3, 10, 17, 31, 21, 27, 6, 33};
-//   int addressCount = 9;
+typedef struct DialOutAdressAnimationState
+ {
+   // Overall state
+   int currentChveron = 0; // 7, 8, 9 . adress
+   int address[9] = {24, 3, 10, 17, 31, 21, 27, 6, 33};
+   int addressCount = 9;
 
-//   // Search algorithm (Animation)
-//   int currentSearchSymbol = 0;
-//   int currentDialAnimationPart = 0;
-//   bool currentChveronLocked = false;
-//   unsigned long dialAnimationPartTime = 0;
-// };
-// DialOutAdressAnimationState dialOutAdressState;
-
+   // Search algorithm (Animation)
+   int currentSearchSymbol = 0;
+   int currentDialAnimationPart = 0;
+   bool currentChveronLocked = false;
+   unsigned long dialAnimationPartTime = 0;
+ } dialOutAdressAnimationState; 
 
 
  uint16_t WS2812FX::mode_SG_Dail_Adress()
- {
+ {      // int start_symbol, bool left, int symbol, int chveron, unsigned long Time
 
-//   switch (dialOutAdressState.currentDialAnimationPart)
-//   {
-//   case 0:
-//     dialOutAdressState.dialAnimationPartTime = Time;
-//     dialOutAdressState.currentDialAnimationPart = 1;
-//     break;
+  uint16_t dataSize = sizeof(dialOutAdressAnimationState);  // work out size of our strcut and reserver ram for it. 
+  if (!SEGENV.allocateData(dataSize))
+    return mode_static(); //allocation failed
+
+  DialOutAdressAnimationState * dialOutAdressState = reinterpret_cast<DialOutAdressAnimationState *>(SEGENV.data);  // initalize an instance of our struct
+
+ if (SEGENV.call == 0)           // first call reset verables.
+  {
+    dialOutAdressState->dialAnimationPartTime = SEGENV.next_time;
+    
+    dialOutAdressState->address[0] = 24;
+    dialOutAdressState->address[1] = 3;
+    dialOutAdressState->address[2] = 10;
+    dialOutAdressState->address[3] = 17;
+    dialOutAdressState->address[4] = 31;
+    dialOutAdressState->address[5] = 21;
+    dialOutAdressState->address[6] = 27;
+    dialOutAdressState->address[7] = 6;
+    dialOutAdressState->address[8] = 33;
+
+    dialOutAdressState->addressCount = 9;
+  }
+
+ //  switch (dialOutAdressState.currentDialAnimationPart)
+ //  {
+ //  case 0:
+  //   dialOutAdressState.dialAnimationPartTime = Time;
+ //    dialOutAdressState.currentDialAnimationPart = 1;
+ //  break;
 
 //   // 1. Light sides of chveron sides
 //   case 1:
@@ -154,7 +175,7 @@
 
 //   default:
 //     break;
-//   }
+ //  }
 
    return FRAMETIME;
  }
