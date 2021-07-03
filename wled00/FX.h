@@ -322,6 +322,20 @@ class WS2812FX {
       }
     } segment;
 
+    typedef struct DialOutAdressAnimationState
+    {
+      // Overall state
+      int currentChveron = 0; // 7, 8, 9 . adress
+      int address[9] = {24, 3, 10, 17, 31, 21, 27, 6, 33};
+      int addressCount = 9;
+
+      // Search algorithm (Animation)
+      int currentSearchSymbol = 0;
+      int currentDialAnimationPart = 0;
+      bool currentChveronLocked = false;
+      unsigned long dialAnimationPartTime = 0;
+    } dialOutAdressAnimationState;
+
   // segment runtime parameters
     typedef struct Segment_runtime { // 28 bytes
       unsigned long next_time;
@@ -659,6 +673,7 @@ class WS2812FX {
       getFps(),
       mode_Rando(void),
       mode_SG_Dail_Adress(void);
+      void DialAdress(DialOutAdressAnimationState * dialOutAdressState, int start_symbol, bool left, int symbol, int chveron, unsigned long Time);
 
     uint32_t
       now,
