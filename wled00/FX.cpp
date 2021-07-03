@@ -28,42 +28,7 @@
 #define IBN 5100
 #define PALETTE_SOLID_WRAP (paletteBlend == 1 || paletteBlend == 3)
 
- int ChveronsLocks[] = {3, 10, 17, 24, 31,
-                         38, 45, 52, 59}; // chevron middle bits
-  int ChveronsSides[] = {
-      2, 4, 9, 11, 16, 18, 23, 25, 30,
-      32, 37, 39, 44, 46, 51, 53, 58, 60}; // chevron side bits
-
-  int Symbols[] = {0, 1, 5, 6, 7, 8, 12, 13, 14, 15, 19, 20,
-                   21, 22, 26, 27, 28, 29, 33, 34, 35, 36, 40, 41,
-                   42, 43, 47, 48, 49, 50, 54, 55, 56, 57, 61, 62}; // symoblosl
-
-
-// struct DialInAdressAnimationState
-// {
-//   int Back[] = {41, 42, 43, 44, 45, 46, 47, 48, 49, 50}; // the back
-
-//   int Stairs[] = {         // The stairs
-//       12, 13,              // Step 1 (top step)
-//       14, 15, 16,          // Step 2
-//       17, 18, 19,          // Step 3
-//       20, 21, 22,          // Step 4
-//       23, 24, 25, 26,      // Step 5
-//       27, 28, 29, 30,      // Step 6
-//       31, 32, 33, 34, 35,  // Step 7
-//       40, 39, 38, 37, 36}; // Step 8 (bottom step)
-
-//   int Sides[] = {7, 8, 6, 9, 5, 10, 4, 11}; // the sides, in light order
-//   int StairLights[] = {0, 1, 2, 3};         // side ligitng on stairs
-
-//   // Overall state
-//   int start_symbol = 18;
-//   int index = 18;
-//   int dailInComplete = 0;
-//   int state = 0;
-// };
-
-// struct DialUpAdressAnimationState // find a better place to put this, or adapt it into the core struct
+// struct DialOutAdressAnimationState
 // {
 //   // Overall state
 //   int currentChveron = 0; // 7, 8, 9 . adress
@@ -76,78 +41,123 @@
 //   bool currentChveronLocked = false;
 //   unsigned long dialAnimationPartTime = 0;
 // };
-// uint16_t WS2812FX::mode_Rando()
-uint16_t WS2812FX::mode_SG_Dail_Adress()
-{
-return FRAMETIME;
-}
+// DialOutAdressAnimationState dialOutAdressState;
 
-// // uint16_t WS2812FX::mode_SG_Dailed_In()
-// {
 
-//   if (dialUpAdressState.currentChveronLocked)
+
+ uint16_t WS2812FX::mode_SG_Dail_Adress()
+ {
+
+//   switch (dialOutAdressState.currentDialAnimationPart)
 //   {
-//     dialUpAdressState.currentChveron++;
-//     dialUpAdressState.currentChveronLocked = false;
-//   }
+//   case 0:
+//     dialOutAdressState.dialAnimationPartTime = Time;
+//     dialOutAdressState.currentDialAnimationPart = 1;
+//     break;
 
-//   // Checks if we all dialed up
-//   if (dialUpAdressState.currentChveron == dialUpAdressState.addressCount)
-//   {
-
-//     if (Time > dialUpAdressState.dialAnimationPartTime + 5000)
+//   // 1. Light sides of chveron sides
+//   case 1:
+//     Gate_strip[ChveronsSides[chveron * 2]] = CRGB(255, 255, 255);
+//     Gate_strip[ChveronsSides[chveron * 2 + 1]] = CRGB(255, 255, 255);
+//     if (Time > dialOutAdressState.dialAnimationPartTime + 500)
 //     {
-//       //Resets the gate and starts a new dial up
-//       dialUpAdressState.currentChveron = 0;
-//       dialUpAdressState.addressCount = random(7, 10);
-//       for (int index = 0; index < dialUpAdressState.addressCount; index++)
-//       {
-//         dialUpAdressState.address[index] = random(0, 36);
-//       }
-
-//       for (int index = 0; index < 36; index++)
-//       {
-//         Gate_strip[Symbols[index]] = CRGB(0, 0, 0);
-//       }
-
-//       for (int index = 0; index < 18; index++)
-//       {
-//         Gate_strip[ChveronsSides[index]] = CRGB(0, 0, 0);
-//       }
-
-//       for (int index = 0; index < 9; index++)
-//       {
-//         Gate_strip[ChveronsLocks[index]] = CRGB(0, 0, 0);
-//       }
+//       dialOutAdressState.currentDialAnimationPart = 2;
+//       dialOutAdressState.dialAnimationPartTime = Time;
 //     }
-//     else
+//     break;
+
+//   // 2. Light the first symbol
+//   case 2:
+//     Gate_strip[Symbols[start_symbol]] = CRGB(255, 255, 255);
+//     if (Time > dialOutAdressState.dialAnimationPartTime + 250)
 //     {
-//       return;
+//       dialOutAdressState.currentDialAnimationPart = 3;
+//       dialOutAdressState.dialAnimationPartTime = Time;
+//       dialOutAdressState.currentSearchSymbol = start_symbol;
 //     }
-//   }
+//     break;
 
-//   int start_symbol = 18;
-//   if (dialUpAdressState.currentChveron > 0)
-//   {
-//     start_symbol = dialUpAdressState.address[dialUpAdressState.currentChveron - 1];
-//   }
-
-//   DialAdress(
-//       start_symbol,
-//       dialUpAdressState.currentChveron % 2 == 0,
-//       dialUpAdressState.address[dialUpAdressState.currentChveron],
-//       dialUpAdressState.currentChveron,
-//       Time);
-
-//   // Ensures the previous locked symbols stay turned on
-//   for (int index = 0; index < dialUpAdressState.currentChveron; index++)
-//   {
-//     if (dialUpAdressState.currentSearchSymbol != dialUpAdressState.address[index])
+//   // 3. Is the symbol we are on, the correct symbol?
+//   //  3a: It is not the correct symbol, we go to the symbol to the left and repeat 3
+//   //  We do this by turning off current symbol and turn on the left symbol
+//   case 3:
+//     if (dialOutAdressState.currentSearchSymbol == symbol)
 //     {
-//       Gate_strip[Symbols[dialUpAdressState.address[index]]] = CRGB(0, 0, 255);
+//       // We have found the correct symbol
+//       dialOutAdressState.currentDialAnimationPart = 4;
+//       dialOutAdressState.dialAnimationPartTime = Time;
 //     }
+//     else if (Time > dialOutAdressState.dialAnimationPartTime + 100)
+//     {
+//       //Goes to the next symbol
+//       dialOutAdressState.dialAnimationPartTime = Time;
+//       Gate_strip[Symbols[dialOutAdressState.currentSearchSymbol]] = CRGB(0, 0, 0);
+//       if (left)
+//       {
+//         dialOutAdressState.currentSearchSymbol = dialOutAdressState.currentSearchSymbol + 1;
+//       }
+//       else
+//       {
+//         dialOutAdressState.currentSearchSymbol = dialOutAdressState.currentSearchSymbol - 1;
+//       }
+//       // Goes to the first symbol
+//       if (dialOutAdressState.currentSearchSymbol >= 36)
+//       {
+//         dialOutAdressState.currentSearchSymbol = 0;
+//       }
+//       // Goes to the last symbol
+//       if (dialOutAdressState.currentSearchSymbol < 0)
+//       {
+//         dialOutAdressState.currentSearchSymbol = 35;
+//       }
+//       Gate_strip[Symbols[dialOutAdressState.currentSearchSymbol]] = CRGB(255, 255, 255);
+//     }
+//     break;
+
+//     // 4. When it reaches the correct one we lights the chveron
+//   case 4:
+//     if (Time > dialOutAdressState.dialAnimationPartTime + 250)
+//     {
+//       Gate_strip[ChveronsLocks[chveron]] = CRGB(255, 255, 255);
+//       dialOutAdressState.currentDialAnimationPart = 5;
+//       dialOutAdressState.dialAnimationPartTime = Time;
+//     }
+//     break;
+
+//     // 5. We turn off the chveron sides
+//   case 5:
+//     if (Time > dialOutAdressState.dialAnimationPartTime + 500)
+//     {
+//       Gate_strip[ChveronsSides[chveron * 2]] = CRGB(0, 0, 0);
+//       Gate_strip[ChveronsSides[chveron * 2 + 1]] = CRGB(0, 0, 0);
+//       dialOutAdressState.currentDialAnimationPart = 6;
+//       dialOutAdressState.dialAnimationPartTime = Time;
+//     }
+//     break;
+
+//     // 6. Change the color of the symbol (to show it have been chosen)
+//   case 6:
+//     Gate_strip[Symbols[symbol]] = CRGB(0, 0, 255);
+//     dialOutAdressState.currentDialAnimationPart = 7;
+//     dialOutAdressState.dialAnimationPartTime = Time;
+//     break;
+
+//     // 7. Add a delay
+//   case 7:
+//     if (Time > dialOutAdressState.dialAnimationPartTime + 1500)
+//     {
+//       dialOutAdressState.currentDialAnimationPart = 0;
+//       dialOutAdressState.dialAnimationPartTime = Time;
+//       dialOutAdressState.currentChveronLocked = true;
+//     }
+//     break;
+
+//   default:
+//     break;
 //   }
-// }
+
+   return FRAMETIME;
+ }
 
 uint16_t WS2812FX::mode_Rando()
 {
