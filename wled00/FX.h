@@ -673,7 +673,15 @@ class WS2812FX {
       getFps(),
       mode_Rando(void),
       mode_SG_Dail_Adress(void);
-      void DialAdress(DialOutAdressAnimationState * dialOutAdressState, int start_symbol, bool left, int symbol, int chveron, unsigned long Time);
+      
+      void DialAdress(
+        DialOutAdressAnimationState * dialOutAdressState, 
+        int start_symbol, 
+        bool left, 
+        int symbol, 
+        int chveron,
+        float speedModifier,
+        unsigned long Time);
 
     uint32_t
       now,
