@@ -49,28 +49,18 @@ int Symbols[] = {0, 1, 5, 6, 7, 8, 12, 13, 14, 15, 19, 20,
   DialOutAdressAnimationState * dialOutAdressState = reinterpret_cast<DialOutAdressAnimationState *>(SEGENV.data);  // initalize an instance of our struct
 
   float speedModifier;
-  if (SEGMENT.speed = 0)
+  if (SEGMENT.speed == 0)
   {
-    speedModifier = 1.0f / 128.0f;
+    speedModifier = 2 - 1.0f / 128.0f;
   }
   else
   {
-    speedModifier = SEGMENT.speed / 255.0f;
+    speedModifier = 2 - SEGMENT.speed / 128.0f;
   }
 
  if (SEGENV.call == 0)           // first call reset verables.
   {
     dialOutAdressState->dialAnimationPartTime = SEGENV.next_time;
-
-    dialOutAdressState->address[0] = 24;
-    dialOutAdressState->address[1] = 3;
-    dialOutAdressState->address[2] = 10;
-    dialOutAdressState->address[3] = 17;
-    dialOutAdressState->address[4] = 31;
-    dialOutAdressState->address[5] = 21;
-    dialOutAdressState->address[6] = 27;
-    dialOutAdressState->address[7] = 6;
-    dialOutAdressState->address[8] = 33;
 
     dialOutAdressState->addressCount = 9;
     dialOutAdressState->currentChveron = 9;
