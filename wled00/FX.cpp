@@ -83,7 +83,16 @@ int Symbols[] = {0, 1, 5, 6, 7, 8, 12, 13, 14, 15, 19, 20,
       dialOutAdressState->addressCount = random(7, 10);
       for (int index = 0; index < dialOutAdressState->addressCount; index++)
       {
-        dialOutAdressState->address[index] = random(0, 36);
+        dialOutAdressState->address[index] = random(0, 36); // select random symbole
+
+        for (int index2 = 0; index < dialOutAdressState->addressCount; index2++)
+          {
+            if( dialOutAdressState->address[index] == dialOutAdressState->address[index2] ) // check this symbol is not used allready.
+            {
+              index = index -1; // if syombol is allready chosen retry.
+            }
+          }
+        
       }
 
       for (int index = 0; index < 36; index++)
