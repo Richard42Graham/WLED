@@ -28,120 +28,81 @@
 #define IBN 5100
 #define PALETTE_SOLID_WRAP (paletteBlend == 1 || paletteBlend == 3)
 
+int convertdown(float value)
+{
+  value = value * 2048;
+  int result = int(value);
+  if (result > 255)
+  {
+    result = 255;
+  }
+  return result;
+}
 
- int convertdown(float value)
- {
-   value = value * 2048;
-   int result = int(value);
-   if (result > 255)
-   {
-     result = 255;
-   }
-   return result;
- }
-
+float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
 uint16_t WS2812FX::mode_Heat_Blobs_Paul(void)
 {
+  uint16_t dataSize = sizeof(float) * (SEGLEN + 1);
+  if (!SEGENV.allocateData(dataSize))
+    return mode_static(); //allocation failed
 
- float heatstates[( SEGLEN ) + 1];
- float current;
- float last;
- int skip = 10;
+  float *heatstates = reinterpret_cast<float *>(SEGENV.data); // initalize an instance of our struct
 
-   for (uint16_t i = 0; i < SEGLEN; i++)
-   {
-     if(skip != 0)
-       {
-         skip--;
-       }
-      
-     current = heatstates[i];
+  float current;
+  float last = 0.02;
+  float speedMultiplier = mapfloat(SEGMENT.speed, 0.0f, 255.0f, 0.001f, 0.004f);
+  float intensityMultiplier = mapfloat(255 - SEGMENT.intensity, 0, 255, 0.85, 1.15);
+  float cooling = 0.8f * intensityMultiplier;
+  float heatSpread = (1.0f - cooling - speedMultiplier) / 2.0f;
+  cooling = cooling - speedMultiplier;
 
-     if ((current < 0.02) && skip == 0)
-     {
-       heatstates[i] = 1;
-       skip = 50;
-     }
-     else
-     {
-       float next = heatstates[i+1]*0.1;
-       float curlast = last*0.1;
-       if(i == 0)
-       {
-         curlast = current*0.1;
-       }
-       if(i == ((SEGLEN)-1))
-       {
-         next = current*0.1;
-       }
-       heatstates[i] = current*0.798 + next + curlast;
-     }
+  for (uint16_t i = 0; i < SEGLEN; i++)
+  {
+    current = heatstates[i];
+    float next = heatstates[i + 1] * heatSpread;
+    float curlast = last * heatSpread;
+    if (i == 0)
+    {
+      curlast = current * heatSpread;
+    }
+    if (i == ((SEGLEN)-1))
+    {
+      next = current * heatSpread;
+    }
+    heatstates[i] = current * cooling + next + curlast;
 
-     last = current;
-     int red = convertdown(heatstates[i]*0.25);
-     int green = convertdown(heatstates[i]*0.25);
-     int blue = convertdown(heatstates[i]);
-     int hue = 255-blue;
-     int val = 255;
-     if (hue > 192)
-     {
-       val = blue*4;
-     }
+    if (heatstates[i] < 0.02f && next < 0.05f && curlast < 0.05f)
+    {
+      heatstates[i] = 1;
+    }
+    last = heatstates[i];
 
-     if (hue > 170)
-     {
-       hue = 170;
-     }
+    //int red = convertdown(heatstates[i] * 0.25);
+    //int green = convertdown(heatstates[i] * 0.25);
+    //int blue = convertdown(heatstates[i]);
+    int heat = convertdown(heatstates[i]);
+    int hue = 255 - heat;
+    int val = 255;
+    if (hue > 192)
+    {
+      val = heat * 4;
+    }
 
-    // uint32_t blob_clour = CHSV(hue, SEGMENT.intensity, val);
-    setPixelColor(i, CHSV(hue, SEGMENT.intensity, val) + 0 );
-      return FRAMETIME;
-    
-//     switch(i/SEGLEN)
-//     {
-//       case 0:
-//       {
-//         [i%SEGLEN] = CHSV(hue, 255, val);
-//         //leds1[i%SEGLEN] = CRGB(red, green, blue);
-//       } break;
-//       case 1:
-//       {
-//         leds2[i%SEGLEN] = CHSV(hue, 255, val);
-//         //leds2[i%SEGLEN] = CRGB(red, green, blue);
-//       } break;
-//       case 2:
-//       {
-//         leds3[i%SEGLEN] = CHSV(hue, 255, val);
-//         //leds3[i%SEGLEN] = CRGB(red, green, blue);
-//       } break;
-//       case 3:
-//       {
-//         leds4[i%SEGLEN] = CHSV(hue, 255, val);
-//         //leds4[i%SEGLEN] = CRGB(red, green, blue);blob_clour
-//       } break;
-//     }
-   }
-
-
+    if (hue > 170)
+    {
+      hue = 170;
+    }
+    CHSV hsv = CHSV(hue, 255, val);
+    CRGB rgb;
+    hsv2rgb_rainbow(hsv, rgb); //convert HSV to RGB
+    setPixelColor(i, rgb.red, rgb.green, rgb.blue, 255);
+  }
+  return FRAMETIME;
 }
-
-// //Heat blobs
-// void heatblobs(struct CRGB *leds1, struct CRGB *leds2, struct CRGB *leds3, struct CRGB *leds4)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int ChveronsLocks[] = {3, 10, 17, 24, 31,
                        38, 45, 52, 59}; // chevron middle bits
@@ -153,16 +114,14 @@ int Symbols[] = {0, 1, 5, 6, 7, 8, 12, 13, 14, 15, 19, 20,
                  21, 22, 26, 27, 28, 29, 33, 34, 35, 36, 40, 41,
                  42, 43, 47, 48, 49, 50, 54, 55, 56, 57, 61, 62}; // symoblosl
 
+uint16_t WS2812FX::mode_SG_Dail_Adress()
+{ // int start_symbol, bool left, int symbol, int chveron, unsigned long Time
 
-
- uint16_t WS2812FX::mode_SG_Dail_Adress()
- {      // int start_symbol, bool left, int symbol, int chveron, unsigned long Time
-
-  uint16_t dataSize = sizeof(dialOutAdressAnimationState);  // work out size of our strcut and reserver ram for it. 
+  uint16_t dataSize = sizeof(dialOutAdressAnimationState); // work out size of our strcut and reserver ram for it.
   if (!SEGENV.allocateData(dataSize))
     return mode_static(); //allocation failed
 
-  DialOutAdressAnimationState * dialOutAdressState = reinterpret_cast<DialOutAdressAnimationState *>(SEGENV.data);  // initalize an instance of our struct
+  DialOutAdressAnimationState *dialOutAdressState = reinterpret_cast<DialOutAdressAnimationState *>(SEGENV.data); // initalize an instance of our struct
 
   float speedModifier;
   if (SEGMENT.speed == 0)
@@ -174,13 +133,12 @@ int Symbols[] = {0, 1, 5, 6, 7, 8, 12, 13, 14, 15, 19, 20,
     speedModifier = 2 - SEGMENT.speed / 128.0f;
   }
 
- if (SEGENV.call == 0)           // first call reset verables.
+  if (SEGENV.call == 0) // first call reset verables.
   {
     dialOutAdressState->dialAnimationPartTime = SEGENV.next_time;
 
     dialOutAdressState->addressCount = 9;
     dialOutAdressState->currentChveron = 9;
-
   }
 
   if (dialOutAdressState->currentChveronLocked)
@@ -202,13 +160,12 @@ int Symbols[] = {0, 1, 5, 6, 7, 8, 12, 13, 14, 15, 19, 20,
         dialOutAdressState->address[index] = random(0, 36); // select random symbole
 
         for (int index2 = 0; index < dialOutAdressState->addressCount; index2++)
+        {
+          if (dialOutAdressState->address[index] == dialOutAdressState->address[index2]) // check this symbol is not used allready.
           {
-            if( dialOutAdressState->address[index] == dialOutAdressState->address[index2] ) // check this symbol is not used allready.
-            {
-              index = index -1; // if syombol is allready chosen retry.
-            }
+            index = index - 1; // if syombol is allready chosen retry.
           }
-        
+        }
       }
 
       for (int index = 0; index < 36; index++)
@@ -255,126 +212,126 @@ int Symbols[] = {0, 1, 5, 6, 7, 8, 12, 13, 14, 15, 19, 20,
       setPixelColor(Symbols[dialOutAdressState->address[index]], 0, 0, 255);
     }
   }
-   return FRAMETIME;
- }
+  return FRAMETIME;
+}
 
- void WS2812FX::DialAdress(
-     DialOutAdressAnimationState *dialOutAdressState,
-     int start_symbol,
-     bool left,
-     int symbol,
-     int chveron,
-     float speedModifier,
-     unsigned long Time)
- {
-   switch (dialOutAdressState->currentDialAnimationPart)
-   {
-   case 0:
-     dialOutAdressState->dialAnimationPartTime = Time;
-     dialOutAdressState->currentDialAnimationPart = 1;
-     break;
+void WS2812FX::DialAdress(
+    DialOutAdressAnimationState *dialOutAdressState,
+    int start_symbol,
+    bool left,
+    int symbol,
+    int chveron,
+    float speedModifier,
+    unsigned long Time)
+{
+  switch (dialOutAdressState->currentDialAnimationPart)
+  {
+  case 0:
+    dialOutAdressState->dialAnimationPartTime = Time;
+    dialOutAdressState->currentDialAnimationPart = 1;
+    break;
 
-   // 1. Light sides of chveron sides
-   case 1:
-     setPixelColor(ChveronsSides[chveron * 2], 255, 255, 255);
-     setPixelColor(ChveronsSides[chveron * 2 + 1], 255, 255, 255);
-     if (Time > dialOutAdressState->dialAnimationPartTime + 500 * speedModifier)
-     {
-       dialOutAdressState->currentDialAnimationPart = 2;
-       dialOutAdressState->dialAnimationPartTime = Time;
-     }
-     break;
+  // 1. Light sides of chveron sides
+  case 1:
+    setPixelColor(ChveronsSides[chveron * 2], 255, 255, 255);
+    setPixelColor(ChveronsSides[chveron * 2 + 1], 255, 255, 255);
+    if (Time > dialOutAdressState->dialAnimationPartTime + 500 * speedModifier)
+    {
+      dialOutAdressState->currentDialAnimationPart = 2;
+      dialOutAdressState->dialAnimationPartTime = Time;
+    }
+    break;
 
-   // 2. Light the first symbol
-   case 2:
-     setPixelColor(Symbols[start_symbol], 255, 255, 255);
-     if (Time > dialOutAdressState->dialAnimationPartTime + 250 * speedModifier)
-     {
-       dialOutAdressState->currentDialAnimationPart = 3;
-       dialOutAdressState->dialAnimationPartTime = Time;
-       dialOutAdressState->currentSearchSymbol = start_symbol;
-     }
-     break;
+  // 2. Light the first symbol
+  case 2:
+    setPixelColor(Symbols[start_symbol], 255, 255, 255);
+    if (Time > dialOutAdressState->dialAnimationPartTime + 250 * speedModifier)
+    {
+      dialOutAdressState->currentDialAnimationPart = 3;
+      dialOutAdressState->dialAnimationPartTime = Time;
+      dialOutAdressState->currentSearchSymbol = start_symbol;
+    }
+    break;
 
-   // 3. Is the symbol we are on, the correct symbol?
-   //  3a: It is not the correct symbol, we go to the symbol to the left and repeat 3
-   //  We do this by turning off current symbol and turn on the left symbol
-   case 3:
-     if (dialOutAdressState->currentSearchSymbol == symbol)
-     {
-       // We have found the correct symbol
-       dialOutAdressState->currentDialAnimationPart = 4;
-       dialOutAdressState->dialAnimationPartTime = Time;
-     }
-     else if (Time > dialOutAdressState->dialAnimationPartTime + 100 * speedModifier)
-     {
-       //Goes to the next symbol
-       dialOutAdressState->dialAnimationPartTime = Time;
-       setPixelColor(Symbols[dialOutAdressState->currentSearchSymbol], 0, 0, 0);
-       if (left)
-       {
-         dialOutAdressState->currentSearchSymbol = dialOutAdressState->currentSearchSymbol + 1;
-       }
-       else
-       {
-         dialOutAdressState->currentSearchSymbol = dialOutAdressState->currentSearchSymbol - 1;
-       }
-       // Goes to the first symbol
-       if (dialOutAdressState->currentSearchSymbol >= 36)
-       {
-         dialOutAdressState->currentSearchSymbol = 0;
-       }
-       // Goes to the last symbol
-       if (dialOutAdressState->currentSearchSymbol < 0)
-       {
-         dialOutAdressState->currentSearchSymbol = 35;
-       }
-       setPixelColor(Symbols[dialOutAdressState->currentSearchSymbol], 255, 255, 255);
-     }
-     break;
+  // 3. Is the symbol we are on, the correct symbol?
+  //  3a: It is not the correct symbol, we go to the symbol to the left and repeat 3
+  //  We do this by turning off current symbol and turn on the left symbol
+  case 3:
+    if (dialOutAdressState->currentSearchSymbol == symbol)
+    {
+      // We have found the correct symbol
+      dialOutAdressState->currentDialAnimationPart = 4;
+      dialOutAdressState->dialAnimationPartTime = Time;
+    }
+    else if (Time > dialOutAdressState->dialAnimationPartTime + 100 * speedModifier)
+    {
+      //Goes to the next symbol
+      dialOutAdressState->dialAnimationPartTime = Time;
+      setPixelColor(Symbols[dialOutAdressState->currentSearchSymbol], 0, 0, 0);
+      if (left)
+      {
+        dialOutAdressState->currentSearchSymbol = dialOutAdressState->currentSearchSymbol + 1;
+      }
+      else
+      {
+        dialOutAdressState->currentSearchSymbol = dialOutAdressState->currentSearchSymbol - 1;
+      }
+      // Goes to the first symbol
+      if (dialOutAdressState->currentSearchSymbol >= 36)
+      {
+        dialOutAdressState->currentSearchSymbol = 0;
+      }
+      // Goes to the last symbol
+      if (dialOutAdressState->currentSearchSymbol < 0)
+      {
+        dialOutAdressState->currentSearchSymbol = 35;
+      }
+      setPixelColor(Symbols[dialOutAdressState->currentSearchSymbol], 255, 255, 255);
+    }
+    break;
 
-     // 4. When it reaches the correct one we lights the chveron
-   case 4:
-     if (Time > dialOutAdressState->dialAnimationPartTime + 250 * speedModifier)
-     {
-       setPixelColor(ChveronsLocks[chveron], 255, 255, 255);
-       dialOutAdressState->currentDialAnimationPart = 5;
-       dialOutAdressState->dialAnimationPartTime = Time;
-     }
-     break;
+    // 4. When it reaches the correct one we lights the chveron
+  case 4:
+    if (Time > dialOutAdressState->dialAnimationPartTime + 250 * speedModifier)
+    {
+      setPixelColor(ChveronsLocks[chveron], 255, 255, 255);
+      dialOutAdressState->currentDialAnimationPart = 5;
+      dialOutAdressState->dialAnimationPartTime = Time;
+    }
+    break;
 
-     // 5. We turn off the chveron sides
-   case 5:
-     if (Time > dialOutAdressState->dialAnimationPartTime + 500 * speedModifier)
-     {
-       setPixelColor(ChveronsSides[chveron * 2], 0, 0, 0);
-       setPixelColor(ChveronsSides[chveron * 2 + 1], 0, 0, 0);
-       dialOutAdressState->currentDialAnimationPart = 6;
-       dialOutAdressState->dialAnimationPartTime = Time;
-     }
-     break;
+    // 5. We turn off the chveron sides
+  case 5:
+    if (Time > dialOutAdressState->dialAnimationPartTime + 500 * speedModifier)
+    {
+      setPixelColor(ChveronsSides[chveron * 2], 0, 0, 0);
+      setPixelColor(ChveronsSides[chveron * 2 + 1], 0, 0, 0);
+      dialOutAdressState->currentDialAnimationPart = 6;
+      dialOutAdressState->dialAnimationPartTime = Time;
+    }
+    break;
 
-     // 6. Change the color of the symbol (to show it have been chosen)
-   case 6:
-     setPixelColor(Symbols[symbol], 0, 0, 255);
-     dialOutAdressState->currentDialAnimationPart = 7;
-     dialOutAdressState->dialAnimationPartTime = Time;
-     break;
+    // 6. Change the color of the symbol (to show it have been chosen)
+  case 6:
+    setPixelColor(Symbols[symbol], 0, 0, 255);
+    dialOutAdressState->currentDialAnimationPart = 7;
+    dialOutAdressState->dialAnimationPartTime = Time;
+    break;
 
-     // 7. Add a delay
-   case 7:
-     if (Time > dialOutAdressState->dialAnimationPartTime + 1500 * speedModifier)
-     {
-       dialOutAdressState->currentDialAnimationPart = 0;
-       dialOutAdressState->dialAnimationPartTime = Time;
-       dialOutAdressState->currentChveronLocked = true;
-     }
-     break;
+    // 7. Add a delay
+  case 7:
+    if (Time > dialOutAdressState->dialAnimationPartTime + 1500 * speedModifier)
+    {
+      dialOutAdressState->currentDialAnimationPart = 0;
+      dialOutAdressState->dialAnimationPartTime = Time;
+      dialOutAdressState->currentChveronLocked = true;
+    }
+    break;
 
-   default:
-     break;
-   }
- }
+  default:
+    break;
+  }
+}
 
 uint16_t WS2812FX::mode_Rando()
 {
