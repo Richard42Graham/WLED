@@ -96,6 +96,7 @@ uint16_t WS2812FX::mode_Heat_Blobs_Paul(void)
 
     // uint32_t blob_clour = CHSV(hue, SEGMENT.intensity, val);
     setPixelColor(i, CHSV(hue, SEGMENT.intensity, val) + 0 );
+      return FRAMETIME;
     
 //     switch(i/SEGLEN)
 //     {
@@ -117,12 +118,12 @@ uint16_t WS2812FX::mode_Heat_Blobs_Paul(void)
 //       case 3:
 //       {
 //         leds4[i%SEGLEN] = CHSV(hue, 255, val);
-//         //leds4[i%SEGLEN] = CRGB(red, green, blue);
+//         //leds4[i%SEGLEN] = CRGB(red, green, blue);blob_clour
 //       } break;
 //     }
    }
 
-  return FRAMETIME;
+
 }
 
 // //Heat blobs
