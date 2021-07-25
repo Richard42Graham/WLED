@@ -111,7 +111,7 @@
 #define IS_REVERSE      ((SEGMENT.options & REVERSE     ) == REVERSE     )
 #define IS_SELECTED     ((SEGMENT.options & SELECTED    ) == SELECTED    )
 
-#define MODE_COUNT  120
+#define MODE_COUNT  121   // number of animaitons
 
 #define FX_MODE_STATIC                   0
 #define FX_MODE_BLINK                    1
@@ -233,7 +233,7 @@
 #define FX_MODE_DYNAMIC_SMOOTH         117
 #define FX_MODE_Rando                  118
 #define FX_MODE_SG_Dail_Adress         119  // star gate specific dailing.
-//#define FX_MODE_SG_Dailed_In           120  // star gate specific in comeing worm hole.
+#define FX_MODE_Heat_Blobs_Paul        120  // pauls heat blob animation. 
 
 
 class WS2812FX {
@@ -589,6 +589,7 @@ class WS2812FX {
       _mode[FX_MODE_DYNAMIC_SMOOTH]          = &WS2812FX::mode_dynamic_smooth;
       _mode[FX_MODE_Rando]                   = &WS2812FX::mode_Rando;
       _mode[FX_MODE_SG_Dail_Adress]          = &WS2812FX::mode_SG_Dail_Adress;
+      _mode[FX_MODE_Heat_Blobs_Paul]         = &WS2812FX::mode_Heat_Blobs_Paul;
      // _mode[FX_MODE_SG_Dailed_In]            = &WS2812FX::mode_SG_Dailed_In;
 
       _brightness = DEFAULT_BRIGHTNESS;
@@ -672,7 +673,8 @@ class WS2812FX {
       triwave16(uint16_t),
       getFps(),
       mode_Rando(void),
-      mode_SG_Dail_Adress(void);
+      mode_SG_Dail_Adress(void),
+      mode_Heat_Blobs_Paul(void);
       
       void DialAdress(
         DialOutAdressAnimationState * dialOutAdressState, 
@@ -920,7 +922,8 @@ const char JSON_mode_names[] PROGMEM = R"=====([
 "Twinklefox","Twinklecat","Halloween Eyes","Solid Pattern","Solid Pattern Tri","Spots","Spots Fade","Glitter","Candle","Fireworks Starburst",
 "Fireworks 1D","Bouncing Balls","Sinelon","Sinelon Dual","Sinelon Rainbow","Popcorn","Drip","Plasma","Percent","Ripple Rainbow",
 "Heartbeat","Pacifica","Candle Multi", "Solid Glitter","Sunrise","Phased","Twinkleup","Noise Pal", "Sine","Phased Noise",
-"Flow","Chunchun","Dancing Shadows","Washing Machine","Candy Cane","Blends","TV Simulator","Dynamic Smooth","Rando","SG_Dail_Out"
+"Flow","Chunchun","Dancing Shadows","Washing Machine","Candy Cane","Blends","TV Simulator","Dynamic Smooth","Rando","SG_Dail_Out,
+"Heat_Blobs"
 ])=====";
 
 

@@ -29,6 +29,119 @@
 #define PALETTE_SOLID_WRAP (paletteBlend == 1 || paletteBlend == 3)
 
 
+ int convertdown(float value)
+ {
+   value = value * 2048;
+   int result = int(value);
+   if (result > 255)
+   {
+     result = 255;
+   }
+   return result;
+ }
+
+
+uint16_t WS2812FX::mode_Heat_Blobs_Paul(void)
+{
+
+ float heatstates[( SEGLEN ) + 1];
+ float current;
+ float last;
+ int skip = 10;
+
+   for (uint16_t i = 0; i < SEGLEN; i++)
+   {
+     if(skip != 0)
+       {
+         skip--;
+       }
+      
+     current = heatstates[i];
+
+     if ((current < 0.02) && skip == 0)
+     {
+       heatstates[i] = 1;
+       skip = 50;
+     }
+     else
+     {
+       float next = heatstates[i+1]*0.1;
+       float curlast = last*0.1;
+       if(i == 0)
+       {
+         curlast = current*0.1;
+       }
+       if(i == ((SEGLEN)-1))
+       {
+         next = current*0.1;
+       }
+       heatstates[i] = current*0.798 + next + curlast;
+     }
+
+     last = current;
+     int red = convertdown(heatstates[i]*0.25);
+     int green = convertdown(heatstates[i]*0.25);
+     int blue = convertdown(heatstates[i]);
+     int hue = 255-blue;
+     int val = 255;
+     if (hue > 192)
+     {
+       val = blue*4;
+     }
+
+     if (hue > 170)
+     {
+       hue = 170;
+     }
+
+    // uint32_t blob_clour = CHSV(hue, SEGMENT.intensity, val);
+    setPixelColor(i, CHSV(hue, SEGMENT.intensity, val) + 0 );
+    
+//     switch(i/SEGLEN)
+//     {
+//       case 0:
+//       {
+//         [i%SEGLEN] = CHSV(hue, 255, val);
+//         //leds1[i%SEGLEN] = CRGB(red, green, blue);
+//       } break;
+//       case 1:
+//       {
+//         leds2[i%SEGLEN] = CHSV(hue, 255, val);
+//         //leds2[i%SEGLEN] = CRGB(red, green, blue);
+//       } break;
+//       case 2:
+//       {
+//         leds3[i%SEGLEN] = CHSV(hue, 255, val);
+//         //leds3[i%SEGLEN] = CRGB(red, green, blue);
+//       } break;
+//       case 3:
+//       {
+//         leds4[i%SEGLEN] = CHSV(hue, 255, val);
+//         //leds4[i%SEGLEN] = CRGB(red, green, blue);
+//       } break;
+//     }
+   }
+
+  return FRAMETIME;
+}
+
+// //Heat blobs
+// void heatblobs(struct CRGB *leds1, struct CRGB *leds2, struct CRGB *leds3, struct CRGB *leds4)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int ChveronsLocks[] = {3, 10, 17, 24, 31,
                        38, 45, 52, 59}; // chevron middle bits
 int ChveronsSides[] = {
@@ -38,6 +151,8 @@ int ChveronsSides[] = {
 int Symbols[] = {0, 1, 5, 6, 7, 8, 12, 13, 14, 15, 19, 20,
                  21, 22, 26, 27, 28, 29, 33, 34, 35, 36, 40, 41,
                  42, 43, 47, 48, 49, 50, 54, 55, 56, 57, 61, 62}; // symoblosl
+
+
 
  uint16_t WS2812FX::mode_SG_Dail_Adress()
  {      // int start_symbol, bool left, int symbol, int chveron, unsigned long Time
