@@ -54,6 +54,7 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
 
     #ifdef WLED_USE_ETHERNET
     ethernetType = request->arg(F("ETH")).toInt();
+    WLED::instance().initEthernet();
     #endif
 
     char k[3]; k[2] = 0;
@@ -77,16 +78,23 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
   {
     int t = 0;
 
-    if (rlyPin>=0 && pinManager.isPinAllocated(rlyPin)) pinManager.deallocatePin(rlyPin);
-    if (irPin>=0 && pinManager.isPinAllocated(irPin)) pinManager.deallocatePin(irPin);
-    for (uint8_t s=0; s<WLED_MAX_BUTTONS; s++)
-      if (btnPin[s]>=0 && pinManager.isPinAllocated(btnPin[s]))
-        pinManager.deallocatePin(btnPin[s]);
+    if (rlyPin>=0 && pinManager.isPinAllocated(rlyPin, PinOwner::Relay)) {
+       pinManager.deallocatePin(rlyPin, PinOwner::Relay);
+    }
+    if (irPin>=0 && pinManager.isPinAllocated(irPin, PinOwner::IR)) {
+       pinManager.deallocatePin(irPin, PinOwner::IR);
+    }
+    for (uint8_t s=0; s<WLED_MAX_BUTTONS; s++) {
+      if (btnPin[s]>=0 && pinManager.isPinAllocated(btnPin[s], PinOwner::Button)) {
+        pinManager.deallocatePin(btnPin[s], PinOwner::Button);
+      }
+    }
 
-    strip.isRgbw = false;
     uint8_t colorOrder, type, skip;
     uint16_t length, start;
     uint8_t pins[5] = {255, 255, 255, 255, 255};
+
+    autoSegments = request->hasArg(F("MS"));
 
     for (uint8_t s = 0; s < WLED_MAX_BUSSES; s++) {
       char lp[4] = "L0"; lp[2] = 48+s; lp[3] = 0; //ascii 0-9 //strip data pin
@@ -96,6 +104,7 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
       char ls[4] = "LS"; ls[2] = 48+s; ls[3] = 0; //strip start LED
       char cv[4] = "CV"; cv[2] = 48+s; cv[3] = 0; //strip reverse
       char sl[4] = "SL"; sl[2] = 48+s; sl[3] = 0; //skip 1st LED
+      char rf[4] = "RF"; rf[2] = 48+s; rf[3] = 0; //refresh required
       if (!request->hasArg(lp)) {
         DEBUG_PRINTLN(F("No data.")); break;
       }
@@ -105,29 +114,26 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
         pins[i] = (request->arg(lp).length() > 0) ? request->arg(lp).toInt() : 255;
       }
       type = request->arg(lt).toInt();
-      strip.isRgbw = strip.isRgbw || BusManager::isRgbw(type);
+      type |= request->hasArg(rf) << 7; // off refresh override
       skip = request->hasArg(sl) ? LED_SKIP_AMOUNT : 0;
 
+      colorOrder = request->arg(co).toInt();
+      start = (request->hasArg(ls)) ? request->arg(ls).toInt() : t;
       if (request->hasArg(lc) && request->arg(lc).toInt() > 0) {
-        length = request->arg(lc).toInt();
+        t += length = request->arg(lc).toInt();
       } else {
         break;  // no parameter
       }
 
-      colorOrder = request->arg(co).toInt();
-      start = (request->hasArg(ls)) ? request->arg(ls).toInt() : 0;
-
+      // actual finalization is done in WLED::loop() (removing old busses and adding new)
       if (busConfigs[s] != nullptr) delete busConfigs[s];
       busConfigs[s] = new BusConfig(type, pins, start, length, colorOrder, request->hasArg(cv), skip);
       doInitBusses = true;
     }
 
-    t = request->arg(F("LC")).toInt();
-    if (t > 0 && t <= MAX_LEDS) ledCount = t;
-
     // upate other pins
     int hw_ir_pin = request->arg(F("IR")).toInt();
-    if (pinManager.allocatePin(hw_ir_pin,false)) {
+    if (pinManager.allocatePin(hw_ir_pin,false, PinOwner::IR)) {
       irPin = hw_ir_pin;
     } else {
       irPin = -1;
@@ -135,7 +141,7 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
     irEnabled = request->arg(F("IT")).toInt();
 
     int hw_rly_pin = request->arg(F("RL")).toInt();
-    if (pinManager.allocatePin(hw_rly_pin,true)) {
+    if (pinManager.allocatePin(hw_rly_pin,true, PinOwner::Relay)) {
       rlyPin = hw_rly_pin;
     } else {
       rlyPin = -1;
@@ -146,7 +152,7 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
       char bt[4] = "BT"; bt[2] = 48+i; bt[3] = 0; // button pin
       char be[4] = "BE"; be[2] = 48+i; be[3] = 0; // button type
       int hw_btn_pin = request->arg(bt).toInt();
-      if (pinManager.allocatePin(hw_btn_pin,false)) {
+      if (pinManager.allocatePin(hw_btn_pin,false,PinOwner::Button)) {
         btnPin[i] = hw_btn_pin;
         pinMode(btnPin[i], INPUT_PULLUP);
         buttonType[i] = request->arg(be).toInt();
@@ -164,7 +170,6 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
 
     briS = request->arg(F("CA")).toInt();
 
-    saveCurrPresetCycConf = request->hasArg(F("PC"));
     turnOnAtBoot = request->hasArg(F("BO"));
     t = request->arg(F("BP")).toInt();
     if (t <= 250) bootPreset = t;
@@ -173,7 +178,7 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
 
     fadeTransition = request->hasArg(F("TF"));
     t = request->arg(F("TD")).toInt();
-    if (t > 0) transitionDelay = t;
+    if (t >= 0) transitionDelay = t;
     transitionDelayDefault = t;
     strip.paletteFade = request->hasArg(F("PF"));
 
@@ -203,6 +208,10 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
     if (t > 0) udpPort = t;
     t = request->arg(F("U2")).toInt();
     if (t > 0) udpPort2 = t;
+
+    syncGroups = request->arg(F("GS")).toInt();
+    receiveGroups = request->arg(F("GR")).toInt();
+
     receiveNotificationBrightness = request->hasArg(F("RB"));
     receiveNotificationColor = request->hasArg(F("RC"));
     receiveNotificationEffects = request->hasArg(F("RX"));
@@ -256,10 +265,11 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
     t = request->arg(F("MQPORT")).toInt();
     if (t > 0) mqttPort = t;
     strlcpy(mqttUser, request->arg(F("MQUSER")).c_str(), 41);
-    if (!isAsterisksOnly(request->arg(F("MQPASS")).c_str(), 41)) strlcpy(mqttPass, request->arg(F("MQPASS")).c_str(), 41);
+    if (!isAsterisksOnly(request->arg(F("MQPASS")).c_str(), 41)) strlcpy(mqttPass, request->arg(F("MQPASS")).c_str(), 65);
     strlcpy(mqttClientID, request->arg(F("MQCID")).c_str(), 41);
     strlcpy(mqttDeviceTopic, request->arg(F("MD")).c_str(), 33);
     strlcpy(mqttGroupTopic, request->arg(F("MG")).c_str(), 33);
+    buttonPublishMqtt = request->hasArg(F("BM"));
     #endif
 
     #ifndef WLED_DISABLE_HUESYNC
@@ -312,7 +322,7 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
     analogClockSecondsTrail = request->hasArg(F("OS"));
 
     #ifndef WLED_DISABLE_CRONIXIE
-    strcpy(cronixieDisplay,request->arg(F("CX")).c_str());
+    strlcpy(cronixieDisplay,request->arg(F("CX")).c_str(),7);
     cronixieBacklight = request->hasArg(F("CB"));
     #endif
     countdownMode = request->hasArg(F("CE"));
@@ -431,8 +441,8 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
       String value = request->arg(i);
 
       // POST request parameters are combined as <usermodname>_<usermodparameter>
-      uint8_t umNameEnd = name.indexOf("_");
-      if (!umNameEnd) break;  // parameter does not contain "_" -> wrong
+      int umNameEnd = name.indexOf(":");
+      if (umNameEnd<1) break;  // parameter does not contain ":" or on 1st place -> wrong
 
       JsonObject mod = um[name.substring(0,umNameEnd)]; // get a usermod JSON object
       if (mod.isNull()) {
@@ -442,26 +452,53 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
       DEBUG_PRINT(":");
       name = name.substring(umNameEnd+1); // remove mod name from string
 
+      // if the resulting name still contains ":" this means nested object
+      JsonObject subObj;
+      int umSubObj = name.indexOf(":");
+      DEBUG_PRINTF("(%d):",umSubObj);
+      if (umSubObj>0) {
+        subObj = mod[name.substring(0,umSubObj)];
+        if (subObj.isNull())
+          subObj = mod.createNestedObject(name.substring(0,umSubObj));
+        name = name.substring(umSubObj+1); // remove nested object name from string
+      } else {
+        subObj = mod;
+      }
+      DEBUG_PRINT(name);
+
       // check if parameters represent array
       if (name.endsWith("[]")) {
         name.replace("[]","");
-        if (!mod[name].is<JsonArray>()) {
-          JsonArray ar = mod.createNestedArray(name);
-          ar.add(value);
+        if (!subObj[name].is<JsonArray>()) {
+          JsonArray ar = subObj.createNestedArray(name);
+          ar.add(value.toInt());
           j=0;
         } else {
-          mod[name].add(value);
+          subObj[name].add(value.toInt());
           j++;
         }
-        DEBUG_PRINT(name);
         DEBUG_PRINT("[");
         DEBUG_PRINT(j);
         DEBUG_PRINT("] = ");
         DEBUG_PRINTLN(value);
       } else {
-        mod.remove(name);  // checkboxes get two fields (first is always "off", existence of second depends on checkmark and may be "on")
-        mod[name] = value;
-        DEBUG_PRINT(name);
+        // we are using a hidden field with the same name as our parameter (!before the actual parameter!)
+        // to describe the type of parameter (text,float,int), for boolean patameters the first field contains "off"
+        // so checkboxes have one or two fields (first is always "false", existence of second depends on checkmark and may be "true")
+        if (subObj[name].isNull()) {
+          // the first occurence of the field describes the parameter type (used in next loop)
+          if (value == "false") subObj[name] = false; // checkboxes may have only one field
+          else                  subObj[name] = value;
+        } else {
+          String type = subObj[name].as<String>();  // get previously stored value as a type
+          if (subObj[name].is<bool>())   subObj[name] = true;   // checkbox/boolean
+          else if (type == "number") {
+            value.replace(",",".");      // just in case conversion
+            if (value.indexOf(".") >= 0) subObj[name] = value.toFloat();  // we do have a float
+            else                         subObj[name] = value.toInt();    // we may have an int
+          } else if (type == "int")      subObj[name] = value.toInt();
+          else                           subObj[name] = value;  // text fields
+        }
         DEBUG_PRINT(" = ");
         DEBUG_PRINTLN(value);
       }
@@ -482,21 +519,21 @@ int getNumVal(const String* req, uint16_t pos)
 }
 
 
-//helper to get int value at a position in string
-bool updateVal(const String* req, const char* key, byte* val, byte minv, byte maxv)
+//helper to get int value with in/decrementing support via ~ syntax
+void parseNumber(const char* str, byte* val, byte minv, byte maxv)
 {
-  int pos = req->indexOf(key);
-  if (pos < 1) return false;
-
-  if (req->charAt(pos+3) == '~') {
-    int out = getNumVal(req, pos+1);
+  if (str == nullptr || str[0] == '\0') return;
+  if (str[0] == 'r') {*val = random8(minv,maxv); return;}
+  if (str[0] == '~') {
+    int out = atoi(str +1);
     if (out == 0)
     {
-      if (req->charAt(pos+4) == '-')
+      if (str[1] == '0') return;
+      if (str[1] == '-')
       {
-        *val = (*val <= minv)? maxv : *val -1;
+        *val = (int)(*val -1) < (int)minv ? maxv : min((int)maxv,(*val -1)); //-1, wrap around
       } else {
-        *val = (*val >= maxv)? minv : *val +1;
+        *val = (int)(*val +1) > (int)maxv ? minv : max((int)minv,(*val +1)); //+1, wrap around
       }
     } else {
       out += *val;
@@ -506,8 +543,26 @@ bool updateVal(const String* req, const char* key, byte* val, byte minv, byte ma
     }
   } else
   {
-    *val = getNumVal(req, pos);
+    byte p1 = atoi(str);
+    const char* str2 = strchr(str,'~'); //min/max range (for preset cycle, e.g. "1~5~")
+    if (str2) {
+      byte p2 = atoi(str2+1);
+      presetCycMin = p1; presetCycMax = p2;
+      while (isdigit((str2+1)[0])) str2++;
+      parseNumber(str2+1, val, p1, p2);
+    } else {
+      *val = p1;
+    }
   }
+}
+
+
+bool updateVal(const String* req, const char* key, byte* val, byte minv, byte maxv)
+{
+  int pos = req->indexOf(key);
+  if (pos < 1) return false;
+  if (req->length() < (unsigned int)(pos + 4)) return false;
+  parseNumber(req->c_str() + pos +3, val, minv, maxv);
   return true;
 }
 
@@ -522,13 +577,6 @@ bool handleSet(AsyncWebServerRequest *request, const String& req, bool apply)
   DEBUG_PRINTLN(req);
 
   strip.applyToAllSelected = false;
-  //snapshot to check if request changed values later, temporary.
-  byte prevCol[4] = {col[0], col[1], col[2], col[3]};
-  byte prevColSec[4] = {colSec[0], colSec[1], colSec[2], colSec[3]};
-  byte prevEffect = effectCurrent;
-  byte prevSpeed = effectSpeed;
-  byte prevIntensity = effectIntensity;
-  byte prevPalette = effectPalette;
 
   //segment select (sets main segment)
   byte prevMain = strip.getMainSegmentId();
@@ -545,7 +593,7 @@ bool handleSet(AsyncWebServerRequest *request, const String& req, bool apply)
     if (t < strip.getMaxSegments()) selectedSeg = t;
   }
 
-  WS2812FX::Segment& mainseg = strip.getSegment(selectedSeg);
+  WS2812FX::Segment& selseg = strip.getSegment(selectedSeg);
   pos = req.indexOf(F("SV=")); //segment selected
   if (pos > 0) {
     byte t = getNumVal(&req, pos);
@@ -555,13 +603,13 @@ bool handleSet(AsyncWebServerRequest *request, const String& req, bool apply)
         strip.getSegment(i).setOption(SEG_OPTION_SELECTED, 0);
       }
     }
-    mainseg.setOption(SEG_OPTION_SELECTED, t);
+    selseg.setOption(SEG_OPTION_SELECTED, t);
   }
 
-  uint16_t startI = mainseg.start;
-  uint16_t stopI = mainseg.stop;
-  uint8_t grpI = mainseg.grouping;
-  uint16_t spcI = mainseg.spacing;
+  uint16_t startI = selseg.start;
+  uint16_t stopI  = selseg.stop;
+  uint8_t  grpI   = selseg.grouping;
+  uint16_t spcI   = selseg.spacing;
   pos = req.indexOf(F("&S=")); //segment start
   if (pos > 0) {
     startI = getNumVal(&req, pos);
@@ -581,36 +629,51 @@ bool handleSet(AsyncWebServerRequest *request, const String& req, bool apply)
   }
   strip.setSegment(selectedSeg, startI, stopI, grpI, spcI);
 
-   //set presets
-  pos = req.indexOf(F("P1=")); //sets first preset for cycle
-  if (pos > 0) presetCycleMin = getNumVal(&req, pos);
+  pos = req.indexOf(F("RV=")); //Segment reverse
+  if (pos > 0) selseg.setOption(SEG_OPTION_REVERSED, req.charAt(pos+3) != '0');
 
-  pos = req.indexOf(F("P2=")); //sets last preset for cycle
-  if (pos > 0) presetCycleMax = getNumVal(&req, pos);
+  pos = req.indexOf(F("MI=")); //Segment mirror
+  if (pos > 0) selseg.setOption(SEG_OPTION_MIRROR, req.charAt(pos+3) != '0');
 
-  //preset cycle
-  pos = req.indexOf(F("CY="));
-  if (pos > 0)
-  {
-    char cmd = req.charAt(pos+3);
-    if (cmd == '2') presetCyclingEnabled = !presetCyclingEnabled;
-    else presetCyclingEnabled = (cmd != '0');
-    presetCycCurr = presetCycleMin;
+  pos = req.indexOf(F("SB=")); //Segment brightness/opacity
+  if (pos > 0) {
+    byte segbri = getNumVal(&req, pos);
+    selseg.setOption(SEG_OPTION_ON, segbri, selectedSeg);
+    if (segbri) {
+      selseg.setOpacity(segbri, selectedSeg);
+    }
   }
 
-  pos = req.indexOf(F("PT=")); //sets cycle time in ms
+  pos = req.indexOf(F("SW=")); //segment power
   if (pos > 0) {
-    int v = getNumVal(&req, pos);
-    if (v > 100) presetCycleTime = v/100;
+    switch (getNumVal(&req, pos)) {
+      case 0: selseg.setOption(SEG_OPTION_ON, false); break;
+      case 1: selseg.setOption(SEG_OPTION_ON, true); break;
+      default: selseg.setOption(SEG_OPTION_ON, !selseg.getOption(SEG_OPTION_ON)); break;
+    }
   }
 
   pos = req.indexOf(F("PS=")); //saves current in preset
   if (pos > 0) savePreset(getNumVal(&req, pos));
 
+  pos = req.indexOf(F("P1=")); //sets first preset for cycle
+  if (pos > 0) presetCycMin = getNumVal(&req, pos);
+
+  pos = req.indexOf(F("P2=")); //sets last preset for cycle
+  if (pos > 0) presetCycMax = getNumVal(&req, pos);
+
   //apply preset
-  if (updateVal(&req, "PL=", &presetCycCurr, presetCycleMin, presetCycleMax)) {
+  if (updateVal(&req, "PL=", &presetCycCurr, presetCycMin, presetCycMax)) {
     applyPreset(presetCycCurr);
   }
+
+  //snapshot to check if request changed values later, temporary.
+  byte prevCol[4] = {col[0], col[1], col[2], col[3]};
+  byte prevColSec[4] = {colSec[0], colSec[1], colSec[2], colSec[3]};
+  byte prevEffect = effectCurrent;
+  byte prevSpeed = effectSpeed;
+  byte prevIntensity = effectIntensity;
+  byte prevPalette = effectPalette;
 
   //set brightness
   updateVal(&req, "&A=", &bri);
@@ -643,7 +706,6 @@ bool handleSet(AsyncWebServerRequest *request, const String& req, bool apply)
       nightlightActive = false; //always disable nightlight when toggling
     }
   }
-
   #endif
 
   //set hue
@@ -681,7 +743,7 @@ bool handleSet(AsyncWebServerRequest *request, const String& req, bool apply)
       strip.applyToAllSelected = true;
       strip.setColor(2, t[0], t[1], t[2], t[3]);
     } else {
-      strip.getSegment(selectedSeg).setColor(2,((t[0] << 16) + (t[1] << 8) + t[2] + (t[3] << 24)), selectedSeg);
+      selseg.setColor(2,((t[0] << 16) + (t[1] << 8) + t[2] + (t[3] << 24)), selectedSeg); // defined above (SS=)
     }
   }
 
@@ -704,7 +766,7 @@ bool handleSet(AsyncWebServerRequest *request, const String& req, bool apply)
   }
 
   //set effect parameters
-  if (updateVal(&req, "FX=", &effectCurrent, 0, strip.getModeCount()-1)) presetCyclingEnabled = false;
+  if (updateVal(&req, "FX=", &effectCurrent, 0, strip.getModeCount()-1) && request != nullptr) unloadPlaylist();  //unload playlist if changing FX using web request
   updateVal(&req, "SX=", &effectSpeed);
   updateVal(&req, "IX=", &effectIntensity);
   updateVal(&req, "FP=", &effectPalette, 0, strip.getPaletteCount()-1);
@@ -785,24 +847,6 @@ bool handleSet(AsyncWebServerRequest *request, const String& req, bool apply)
   pos = req.indexOf(F("TT="));
   if (pos > 0) transitionDelay = getNumVal(&req, pos);
 
-  //Segment reverse
-  pos = req.indexOf(F("RV="));
-  if (pos > 0) strip.getSegment(selectedSeg).setOption(SEG_OPTION_REVERSED, req.charAt(pos+3) != '0');
-
-  //Segment reverse
-  pos = req.indexOf(F("MI="));
-  if (pos > 0) strip.getSegment(selectedSeg).setOption(SEG_OPTION_MIRROR, req.charAt(pos+3) != '0');
-
-  //Segment brightness/opacity
-  pos = req.indexOf(F("SB="));
-  if (pos > 0) {
-    byte segbri = getNumVal(&req, pos);
-    strip.getSegment(selectedSeg).setOption(SEG_OPTION_ON, segbri, selectedSeg);
-    if (segbri) {
-      strip.getSegment(selectedSeg).setOpacity(segbri, selectedSeg);
-    }
-  }
-
   //set time (unix timestamp)
   pos = req.indexOf(F("ST="));
   if (pos > 0) {
@@ -866,7 +910,7 @@ bool handleSet(AsyncWebServerRequest *request, const String& req, bool apply)
     WS2812FX::Segment& seg = strip.getSegment(i);
     if (!seg.isSelected()) continue;
     if (effectCurrent != prevEffect) {
-      seg.mode = effectCurrent;
+      strip.setMode(i, effectCurrent);
       effectChanged = true;
     }
     if (effectSpeed != prevSpeed) {
@@ -906,7 +950,7 @@ bool handleSet(AsyncWebServerRequest *request, const String& req, bool apply)
   strip.applyToAllSelected = false;
 
   pos = req.indexOf(F("&NN")); //do not send UDP notifications this time
-  colorUpdated((pos > 0) ? NOTIFIER_CALL_MODE_NO_NOTIFY : NOTIFIER_CALL_MODE_DIRECT_CHANGE);
+  colorUpdated((pos > 0) ? CALL_MODE_NO_NOTIFY : CALL_MODE_DIRECT_CHANGE);
 
   return true;
 }
