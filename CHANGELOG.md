@@ -1,6 +1,211 @@
 ## WLED changelog
 
-### Builds after release 0.12.0
+#### Build 2301240
+
+-   Version bump to v0.14.0-b2 "Hoshi"
+-   PixelArt converter (convert any image to pixel art and display it on a matrix) (PR #3042)
+-   various effect updates and optimisations
+    -   added Overlay option to some effects (allows overlapping segments)
+    -   added gradient text on Scrolling Text
+    -   added #DDMM, #MMDD & #HHMM date and time options for Scrolling Text effect (PR #2990)
+    -   deprecated: Dynamic Smooth, Dissolve Rnd, Solid Glitter
+    -   optimised & enhanced loading of default values
+    -   new effect: Distortion Waves (2D)
+    -   2D support for Ripple effect
+    -   slower minimum speed for Railway effect
+-   DMX effect mode & segment controls (PR #2891)
+-   Optimisations for conditional compiles (further reduction of code size)
+-   better UX with effect sliders (PR #3012)
+-   enhanced support for ESP32 variants: C3, S2 & S3
+-   usermod enhancements (PIR, Temperature, Battery (PR #2975), Analog Clock (PR #2993))
+-   new usermod SHT (PR #2963)
+-   2D matrix set up with gaps or irregular panels (breaking change!) (PR #2892)
+-   palette blending/transitions
+-   random palette smooth changes
+-   hex color notations in custom palettes
+-   allow more virtual buses
+-   plethora of bugfixes
+
+### WLED release 0.14.0-b1
+
+#### Build 2212222
+
+-   Version bump to v0.14.0-b1 "Hoshi"
+-   2D matrix support (including mapping 1D effects to 2D and 2D peek)
+-   [internal] completely rewritten Segment & WS2812FX handling code
+-   [internal] ability to add custom effects via usermods
+-   [internal] set of 2D drawing functions
+-   transitions on every segment (including ESP8266)
+-   enhanced old and new 2D effects (metadata: default values)
+-   custom palettes (up to 10; upload palette0.json, palette1.json, ...)
+-   custom effect sliders and options, quick filters
+-   global I2C and SPI GPIO allocation (for usermods)
+-   usermod settings page enhancements (dropdown & info)
+-   asynchronous preset loading (and added "pd" JSON API call for direct preset apply)
+-   new usermod Boblight (PR #2917)
+-   new usermod PWM Outputs (PR #2912)
+-   new usermod Audioreactive
+-   new usermod Word Clock Matrix (PR #2743)
+-   new usermod Ping Pong Clock (PR #2746)
+-   new usermod ADS1115 (PR #2752)
+-   new usermod Analog Clock (PR #2736)
+-   various usermod enhancements and updates
+-   allow disabling pull-up resistors on buttons
+-   SD card support (PR #2877)
+-   enhanced HTTP API to support custom effect sliders & options (X1, X2, X3, M1, M2, M3)
+-   multiple UDP sync message retries (PR #2830)
+-   network debug printer (PR #2870)
+-   automatic UI PC mode on large displays
+-   removed support for upgrading from pre-0.10 (EEPROM)
+-   support for setting GPIO level when LEDs are off (RMT idle level, ESP32 only) (PR #2478)
+-   Pakistan time-zone (PKT)
+-   ArtPoll support
+-   TM1829 LED support
+-   experimental support for ESP32 S2, S3 and C3
+-   general improvements and bugfixes
+
+### WLED release 0.13.3
+
+-   Version bump to v0.13.3 "Toki"
+-   Disable ESP watchdog by default (fixes flickering and boot issues on a fresh install)
+-   Added support for LPD6803
+
+### WLED release 0.13.2
+
+#### Build 2208140
+
+-   Version bump to v0.13.2 "Toki"
+-   Added option to receive live data on the main segment only (PR #2601)
+-   Enable ESP watchdog by default (PR #2657)
+-   Fixed race condition when saving bus config
+-   Better potentiometer filtering (PR #2693)
+-   More suitable DMX libraries (PR #2652)
+-   Fixed outgoing serial TPM2 message length (PR #2628)
+-   Fixed next universe overflow and Art-Net DMX start address (PR #2607)
+-   Fixed relative segment brightness (PR #2665)
+
+### Builds between releases 0.13.1 and 0.13.2
+
+#### Build 2203191
+
+-   Fixed sunrise/set calculation (once again)
+
+#### Build 2203190
+
+-   Fixed `/json/cfg` unable to set busses (#2589)
+-   Fixed Peek with odd LED counts > 255 (#2586)
+
+#### Build 2203160
+
+-   Version bump to v0.13.2-a0 "Toki"
+-   Add ability to skip up to 255 LEDs
+-   Dependency version bumps
+
+### WLED release 0.13.1
+
+#### Build 2203150
+
+-   Version bump to v0.13.1 "Toki"
+-   Fix persistent preset bug, preventing save of new presets
+
+### WLED release 0.13.0
+
+#### Build 2203142
+
+-   Release of WLED v0.13.0 "Toki"
+-   Reduce APA102 hardware SPI frequency to 5Mhz
+-   Remove `persistent` parameter in `savePreset()`
+
+### Builds between releases 0.12.0 and 0.13.0
+
+#### Build 2203140
+
+-   Added factory reset by pressing button 0 for >10 seconds
+-   Added ability to set presets from DMX Effect mode
+-   Simplified label hiding JS in user interface
+-   Fixed JSON `{"live":true}` indefinite realtime mode
+
+#### Build 2203080
+
+-   Disabled auto white mode in segments with no RGB bus
+-   Fixed hostname string not 0-terminated 
+-   Fixed Popcorn mode not lighting first LED on pop
+
+#### Build 2203060
+
+-   Dynamic hiding of unused color controls in UI (PR #2567)
+-   Removed native Cronixie support and added Cronixie usermod
+-   Fixed disabled timed preset expanding calendar
+-   Fixed Color Order setting shown for analog busses
+-   Fixed incorrect operator (#2566)
+
+#### Build 2203011
+
+-   IR rewrite (PR #2561), supports CCT
+-   Added locate button to Time settings
+-   CSS fixes and adjustments
+-   Consistent Tab indentation in index JS and CSS
+-   Added initial contribution style guideline
+
+#### Build 2202222
+
+-   Version bump to 0.13.0-b7 "Toki"
+-   Fixed HTTP API commands not applying to all selected segments in some conditions
+-   Blynk support is not compiled in by default on ESP32 builds
+
+#### Build 2202210
+
+-   Fixed HTTP API commands not applying to all selected segments if called from JSON
+-   Improved Stream effects, no longer rely on LED state and won't fade out at low brightness
+
+#### Build 2202200
+
+-   Added `info.leds.seglc` per-segment light capability info (PR #2552)
+-   Fixed `info.leds.rgbw` behavior
+-   Segment bounds sync (PR #2547)
+-   WebSockets auto reconnection and error handling
+-   Disable relay pin by default (PR #2531)
+-   Various fixes (ESP32 touch pin 33, floats, PR #2530, #2534, #2538)
+-   Deprecated `info.leds.cct`, `info.leds.wv` and `info.leds.rgbw`
+-   Deprecated `/url` endpoint
+
+#### Build 2202030
+
+-   Switched to binary format for WebSockets peek (PR #2516)
+-   Playlist bugfix
+-   Added `extractModeName()` utility function
+-   Added serial out (PR #2517)
+-   Added configurable baud rate
+
+#### Build 2201260
+
+-   Initial ESP32-C3 and ESP32-S2 support (PRs #2452, #2454, #2502)
+-   Full segment sync (PR #2427)
+-   Allow overriding of color order by ranges (PR #2463) 
+-   Added white channel to Peek
+
+#### Build 2112080
+
+-   Version bump to 0.13.0-b6 "Toki"
+-   Added "ESP02" (ESP8266 with 2M of flash) to PIO/release binaries
+
+#### Build 2112070
+
+-   Added new effect "Fairy", replacing "Police All"
+-   Added new effect "Fairytwinkle", replacing "Two Areas"
+-   Static single JSON buffer (performance and stability improvement) (PR #2336)
+
+#### Build 2112030
+
+-   Fixed ESP32 crash on Colortwinkles brightness change
+-   Fixed setting picker to black resetting hue and saturation
+-   Fixed auto white mode not saved to config
+
+#### Build 2111300
+
+-   Added CCT and white balance correction support (PR #2285)
+-   Unified UI slider style
+-   Added LED settings config template upload
 
 #### Build 2111220
 
