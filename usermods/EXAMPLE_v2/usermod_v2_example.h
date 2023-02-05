@@ -21,14 +21,20 @@
  */
 
 //class name. Use something descriptive and leave the ": public Usermod" part :)
-class MyExampleUsermod : public Usermod {
+class HDDflicker : public Usermod {
   private:
     //Private class members. You can declare variables and functions only accessible to your usermod here
     unsigned long lastTime = 0;
+    uint8_t pulse = 128;  // value of thing. :3 
+    uint8_t decay = 250;  // delay for counting down
+    int pin = 4;
 
     // set your config variables to their boot default value (this can also be done in readFromConfig() or a constructor if you prefer)
-    bool testBool = false;
-    unsigned long testULong = 42424242;
+    bool effectSpeed_bool = false;
+    bool effectIntensity_bool = false;
+    bool col_bool = false;
+
+    unsigned long testULong = 1;
     float testFloat = 42.42;
     String testString = "Forty-Two";
 
@@ -46,6 +52,7 @@ class MyExampleUsermod : public Usermod {
      */
     void setup() {
       //Serial.println("Hello from my usermod!");
+      pinMode(pin,INPUT_PULLUP);
     }
 
 
@@ -69,11 +76,102 @@ class MyExampleUsermod : public Usermod {
      *    Instead, use a timer check as shown here.
      */
     void loop() {
-      if (millis() - lastTime > 1000) {
-        //Serial.println("I'm alive!");
+      if(digitalRead(pin) == LOW)
+      {
+        pulse = 255;
+      }
+
+      if (millis() - lastTime > testULong) 
+      {
+        //Serial.print("buttoning ? ");
+        //Serial.println(pulse);
+        
+        if(pulse <= 1)
+        {
+            //
+            pulse = 10;
+        }
+        else
+        {
+            pulse --;
+        }
+
         lastTime = millis();
       }
+
+      // https://kno.wled.ge/advanced/custom-features/ -- documentation.
+  //    Segment& seg = strip.getSegment(strip.getMainSegmentId());
+      //seg.mode = myFxI;
+      //seg.speed = mySpeed;
+     // seg.intensity = pulse;
+     // colorUpdated(CALL_MODE_FX_CHANGED);
+
+     // colorUpdated(CALL_MODE_NOTIFICATION);
+
+      //seg.palette = myPaletteId;
+
+    //  if(col_bool == true)
+    //    {
+    //    //  col = wheel(pulse); // set colour based on pulse. 
+    //    }
+
+    //  if(effectSpeed_bool == true)
+    //    {
+    //     effectSpeed = pulse; // set colour based on pulse. 
+    //    }
+
+    //  if(effectIntensity_bool == true)
+    //    {
+    //     effectIntensity_bool = pulse; // set colour based on pulse. 
+    //    }
+    // switch(testInt)
+    //   {
+    //     case 1 :
+    //         {
+    //         //  col = wheel(pulse); // set colour based on pulse. 
+    //         }  break;
+
+
+    //     case 2 :
+    //         {
+              effectSpeed = pulse; // set colour based on pulse. 
+      //       }  break;
+
+      //   case 3 :
+      //       {
+      //         effectIntensity = pulse; // set colour based on pulse. 
+      //       }  break;
+      // }
+
+    //  WLED_GLOBAL byte effectCurrent _INIT(0);
+    //  WLED_GLOBAL byte effectSpeed _INIT(128);
+    //  WLED_GLOBAL byte effectIntensity _INIT(128);
+    //  WLED_GLOBAL byte effectPalette _INIT(0);
+    //  WLED_GLOBAL byte col[]    _INIT_N(({ 255, 160, 0, 0 }));  // current RGB(W) primary color. col[] should be updated if you want to change the color.
+
+     // effectPalette = pulse;
+     // effectIntensity = pulse; 
+      // bri = pulse;
+       colorUpdated(CALL_MODE_DIRECT_CHANGE);
+
+       /////// -- TO DO -- ////////
+       // set col wheel based on pulse. 
+       // set speed based on pulse.
+       // set intensity based on pulse.
+       //
+       // set min pulse var.
+       // set max puse var.
+       // set fall time.
+       //
+       // add previouse verables to web UI,
+       // col / speed / intensity = bool
+       // min / max / fall = int/long
+       //
+       // set state machine so verables are updated on CHANGE only. 
+       // hope this fixes it not being able to turn off. 
+
     }
+    
 
 
     /*
@@ -156,7 +254,8 @@ class MyExampleUsermod : public Usermod {
     {
       JsonObject top = root.createNestedObject("exampleUsermod");
       top["great"] = userVar0; //save these vars persistently whenever settings are saved
-      top["testBool"] = testBool;
+      top["col_bool"] = col_bool;
+      top["effectIntensity_bool"], effectIntensity_bool;
       top["testInt"] = testInt;
       top["testLong"] = testLong;
       top["testULong"] = testULong;
@@ -164,7 +263,7 @@ class MyExampleUsermod : public Usermod {
       top["testString"] = testString;
       JsonArray pinArray = top.createNestedArray("pin");
       pinArray.add(testPins[0]);
-      pinArray.add(testPins[1]); 
+      // pinArray.add(testPins[1]); 
     }
 
 
@@ -193,7 +292,9 @@ class MyExampleUsermod : public Usermod {
       bool configComplete = !top.isNull();
 
       configComplete &= getJsonValue(top["great"], userVar0);
-      configComplete &= getJsonValue(top["testBool"], testBool);
+      configComplete &= getJsonValue(top["col_bool"], col_bool);
+      configComplete &= getJsonValue(top["effectSpeed_bool"], effectSpeed_bool);
+      configComplete &= getJsonValue(top["effectIntensity_bool"], col_bool);
       configComplete &= getJsonValue(top["testULong"], testULong);
       configComplete &= getJsonValue(top["testFloat"], testFloat);
       configComplete &= getJsonValue(top["testString"], testString);

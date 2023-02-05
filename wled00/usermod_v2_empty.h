@@ -7,12 +7,13 @@
 class UsermodRenameMe : public Usermod {
   private:
 
+
   public:
     void setup() {
 
     }
 
     void loop() {
-
-    }
-};
+   
+}
+}
