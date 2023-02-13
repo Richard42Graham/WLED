@@ -92,7 +92,7 @@ class HDDflicker : public Usermod {
         if(pulse <= 1)
         {
             //
-            pulse = 10;
+            pulse = 1;  // 10 ? 
         }
         else
         {
@@ -143,7 +143,7 @@ class HDDflicker : public Usermod {
 
       //   case 3 :
       //       {
-              effectIntensity = pulse; // set colour based on pulse. 
+             // effectIntensity = pulse; // set colour based on pulse. 
       //       }  break;
       // }
 
@@ -159,6 +159,7 @@ class HDDflicker : public Usermod {
 
       if(pulse != PrevVar)
         {
+            effectIntensity = pulse; // set colour based on pulse.
             colorUpdated(CALL_MODE_DIRECT_CHANGE);
             PrevVar = pulse;
         }
