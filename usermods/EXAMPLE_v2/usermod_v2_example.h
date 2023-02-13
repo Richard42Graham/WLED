@@ -34,6 +34,9 @@ class HDDflicker : public Usermod {
     bool effectIntensity_bool = false;
     bool col_bool = false;
 
+    int PrevVar = 0;  // perviouse value for state machine. 
+    int NewVar  = 0;  // current value for state machine. 
+
     unsigned long testULong = 1;
     float testFloat = 42.42;
     String testString = "Forty-Two";
@@ -124,6 +127,7 @@ class HDDflicker : public Usermod {
     //    {
     //     effectIntensity_bool = pulse; // set colour based on pulse. 
     //    }
+
     // switch(testInt)
     //   {
     //     case 1 :
@@ -132,14 +136,14 @@ class HDDflicker : public Usermod {
     //         }  break;
 
 
-    //     case 2 :
-    //         {
-              effectSpeed = pulse; // set colour based on pulse. 
+      //   case 2 :
+      //       {
+      //         effectSpeed = pulse; // set colour based on pulse. 
       //       }  break;
 
       //   case 3 :
       //       {
-      //         effectIntensity = pulse; // set colour based on pulse. 
+              effectIntensity = pulse; // set colour based on pulse. 
       //       }  break;
       // }
 
@@ -152,7 +156,13 @@ class HDDflicker : public Usermod {
      // effectPalette = pulse;
      // effectIntensity = pulse; 
       // bri = pulse;
-       colorUpdated(CALL_MODE_DIRECT_CHANGE);
+
+      if(pulse != PrevVar)
+        {
+            colorUpdated(CALL_MODE_DIRECT_CHANGE);
+            PrevVar = pulse;
+        }
+       
 
        /////// -- TO DO -- ////////
        // set col wheel based on pulse. 
